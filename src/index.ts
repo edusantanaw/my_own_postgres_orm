@@ -1,10 +1,9 @@
 import "reflect-metadata";
 import Database from "./database";
 
-import {
-  Entity as EntityDecorator
-} from "./decorator/Entities";
+import { Entity as EntityDecorator } from "./decorator/Entities";
 import { Field, PrimaryKeyField } from "./decorator/FieldDecorator";
+import { randomUUID } from "node:crypto";
 
 @EntityDecorator({ name: "entitie" })
 class MyEntity {
@@ -41,6 +40,13 @@ const database = new Database({
     .then(async () => {
       const respository = database.getRepository(MyEntity);
       const users = await respository.query(`Select * from employees`);
+      const entity = new MyEntity();
+      // entity.id = randomUUID();
+      // entity.name = "Eduardo";
+      // entity.email = "eduardo@email.com";
+      // entity.year = 2000;
+      // entity.deleted = false;
+      // respository.create(entity);
       const users2 = await respository.findAll({
         where: {
           name: {
@@ -51,6 +57,7 @@ const database = new Database({
           },
         },
       });
+      console.log(users2);
     })
     .catch((err) => {
       console.log(err);

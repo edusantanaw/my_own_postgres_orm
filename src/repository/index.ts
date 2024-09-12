@@ -5,23 +5,46 @@ import { Entity } from "../entity";
 import { getEntityMetadata } from "../decorator/Entities";
 
 import "reflect-metadata";
+import { EntityItem } from "../database/types";
 
 export class Repository implements IOrm<Entity> {
-  constructor(private readonly entity: Entity, private readonly pg: Client) {}
+  constructor(
+    private readonly entity: EntityItem,
+    private readonly pg: Client
+  ) {}
   async findAll(args?: {
     where: IWhere<Entity>;
     limit?: number;
     skip?: number;
   }): Promise<Entity[]> {
-    const tableName = getEntityMetadata(this.entity).name;
-    const queryBase = `SELECT * FROM ${tableName}`;
+    const queryBase = `SELECT * FROM ${this.entity.tableName}`;
     const data = await this.pg.query(queryBase);
-    return [];
+    return data.rows;
   }
 
-  create(data: Entity): Promise<Entity> {
-    throw new Error("Method not implemented.");
+  async create(data: Entity): Promise<Entity> {
+    const tablesFields = this.entity.fields.map((e) => {
+      const fieldValue = Reflect.get(data, e.name);
+      return {
+        field: e.name,
+        value: fieldValue,
+        type: e.fieldType,
+      };
+    });
+    const query = `INSERT INTO ${this.entity.tableName}(${tablesFields
+      .map((e) => e.field)
+      .join(",")}) VALUES (${tablesFields
+      .map((e) => {
+        if (typeof e.value === "string") return `'${e.value}'`;
+        if (e.type === "Date")
+          return `'${(e.value ?? new Date()).toISOString().split("T")[0]}'`;
+        return e.value;
+      })
+      .join(",")});`;
+    const response = await this.pg.query(query);
+    return response?.rowCount! > 0;
   }
+
   update(data: Entity): Promise<Entity> {
     throw new Error("Method not implemented.");
   }

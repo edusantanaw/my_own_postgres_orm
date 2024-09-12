@@ -57,7 +57,7 @@ export default class Database {
       return currentMTD === entityMTD;
     });
     if (!findEntity) throw new EntityNotFound();
-    return new Repository(findEntity.entity, Database.client);
+    return new Repository(findEntity, Database.client);
   }
 
   private async createTables() {
