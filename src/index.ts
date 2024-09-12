@@ -3,10 +3,13 @@ import "reflect-metadata";
 import Database from "./database";
 
 import { Entity as EntityDecorator } from "./decorator/Entities";
-import { Field } from "./decorator/FieldDecorator";
+import { Field, PrimaryKeyField } from "./decorator/FieldDecorator";
 
 @EntityDecorator({ name: "entitie" })
 class MyEntity {
+  @PrimaryKeyField()
+  @Field("id")
+  id!: string
   @Field("name")
   name!: string;
   @Field("email")

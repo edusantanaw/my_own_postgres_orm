@@ -2,8 +2,9 @@ import { Client } from "pg";
 import { IOrm, IWhere } from "../@types/orm";
 import { QueryException } from "./exceptions/QueryException";
 import { Entity } from "../entity";
-import "reflect-metadata";
 import { getEntityMetadata } from "../decorator/Entities";
+
+import "reflect-metadata";
 
 export class Repository implements IOrm<Entity> {
   constructor(private readonly entity: Entity, private readonly pg: Client) {}
@@ -12,9 +13,7 @@ export class Repository implements IOrm<Entity> {
     limit?: number;
     skip?: number;
   }): Promise<Entity[]> {
-    console.log(this.entity)
     const tableName = getEntityMetadata(this.entity);
-    console.log(tableName)
     const queryBase = `SELECT * FROM ${tableName}`;
     const data = await this.pg.query(queryBase);
     return [];
@@ -41,5 +40,12 @@ export class Repository implements IOrm<Entity> {
       const message = error as string;
       throw new QueryException(message);
     }
+  }
+  private whereBuilder(data: IWhere<Entity>) {
+    let base = `WHERE`;
+    for (const item in data) {
+      console.log(base);
+    }
+    return base;
   }
 }

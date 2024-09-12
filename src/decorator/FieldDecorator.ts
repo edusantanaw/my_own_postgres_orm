@@ -1,8 +1,24 @@
 import "reflect-metadata";
 import { Entity } from "../entity";
-import { assert } from "console";
 
 const FIELD_METADATA_KEY = Symbol("field");
+
+const PRIMARY_KEY_METADATA_KEY = Symbol("id");
+
+export function PrimaryKeyField() {
+  return function (target: any, propertyKey: string) {
+    Reflect.defineMetadata(PRIMARY_KEY_METADATA_KEY, true, target, propertyKey);
+  };
+}
+
+export function isPrimaryKeyField(target: Entity, propertyKey: string) {
+  const field = Reflect.getMetadata(
+    PRIMARY_KEY_METADATA_KEY,
+    target,
+    propertyKey
+  );
+  return !!field;
+}
 
 export function Field(metadata: string) {
   return function (target: any, propertyKey: string) {

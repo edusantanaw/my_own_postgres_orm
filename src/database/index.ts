@@ -6,8 +6,10 @@ import { randomUUID } from "crypto";
 import {
   getFieldMetadatas,
   getFieldMetadataValue,
+  isPrimaryKeyField,
 } from "../decorator/FieldDecorator";
 import { getEntityMetadata } from "../decorator/Entities";
+import { EntityValidation } from "../exceptions/EntityValidation";
 
 type ICredentials = {
   host: string;
@@ -47,11 +49,14 @@ export default class Database {
     this.credentials = data.credentials;
     this.connect();
     this.entities = data.entities.map((e) => {
+      let haveId: boolean = false;
       const tableName = getEntityMetadata(e);
-      const metadatas = getFieldMetadatas(e).map(
-        (metadata) => metadata.metadata
-      );
-      console.log(metadatas);
+      const metadatas = getFieldMetadatas(e).map((metadata) => {
+        const isPrimaryKey = isPrimaryKeyField(e, metadata.propertyKey);
+        if (isPrimaryKey) haveId = true;
+        return metadata.metadata;
+      });
+      if (!haveId) throw new EntityValidation("Entity must have a primary key");
       return {
         id: randomUUID(),
         tableName: tableName,
