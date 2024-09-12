@@ -13,9 +13,11 @@ export class Repository implements IOrm<Entity> {
     limit?: number;
     skip?: number;
   }): Promise<Entity[]> {
-    const tableName = getEntityMetadata(this.entity);
+    const tableName = getEntityMetadata(this.entity).name;
+    console.log(tableName)
     const queryBase = `SELECT * FROM ${tableName}`;
     const data = await this.pg.query(queryBase);
+    console.log(data)
     return [];
   }
 
@@ -41,6 +43,7 @@ export class Repository implements IOrm<Entity> {
       throw new QueryException(message);
     }
   }
+
   private whereBuilder(data: IWhere<Entity>) {
     let base = `WHERE`;
     for (const item in data) {

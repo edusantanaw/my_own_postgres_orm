@@ -1,15 +1,15 @@
-import * as pg from "pg";
-import { Entity } from "../entity";
-import { EntityNotFound } from "../exceptions/EntityNotFound";
-import { Repository } from "../repository";
 import { randomUUID } from "crypto";
+import * as pg from "pg";
+import { getEntityMetadata } from "../decorator/Entities";
 import {
   getFieldMetadatas,
-  getFieldMetadataValue,
   isPrimaryKeyField,
 } from "../decorator/FieldDecorator";
-import { getEntityMetadata } from "../decorator/Entities";
+import { Entity } from "../entity";
+import { EntityNotFound } from "../exceptions/EntityNotFound";
 import { EntityValidation } from "../exceptions/EntityValidation";
+import { Repository } from "../repository";
+import { createTable } from "./createTable";
 
 type ICredentials = {
   host: string;
@@ -20,50 +20,42 @@ type ICredentials = {
 };
 
 type IData = {
-  entities: Entity[];
+  entities: (typeof Entity)[];
   credentials: ICredentials;
   sync?: boolean;
 };
 
-type IFieldTypes = "Date" | "String" | "Boolean" | "Int" | "Float" | "Double";
+export type IFieldTypes =
+  | "Date"
+  | "String"
+  | "Boolean"
+  | "Int"
+  | "Float"
+  | "Double";
 
 export type IField = {
   name: string;
-  type: IFieldTypes;
+  fieldType: IFieldTypes;
+  pk: boolean;
 };
 
-type IListEntityItem = {
+export type EntityItem = {
   id: string;
-  entity: Entity;
+  entity: typeof Entity;
   tableName: string;
   fields: IField[];
 };
 
 export default class Database {
   private static client: pg.Client;
-  private driver: typeof pg;
-  private entities: IListEntityItem[] = [];
+  private entities: EntityItem[] = [];
   private credentials: ICredentials;
   constructor(data: IData) {
-    this.driver = pg;
     this.credentials = data.credentials;
-    this.connect();
-    this.entities = data.entities.map((e) => {
-      let haveId: boolean = false;
-      const tableName = getEntityMetadata(e);
-      const metadatas = getFieldMetadatas(e).map((metadata) => {
-        const isPrimaryKey = isPrimaryKeyField(e, metadata.propertyKey);
-        if (isPrimaryKey) haveId = true;
-        return metadata.metadata;
-      });
-      if (!haveId) throw new EntityValidation("Entity must have a primary key");
-      return {
-        id: randomUUID(),
-        tableName: tableName,
-        entity: e,
-        fields: metadatas,
-      };
+    this.connect().then(() => {
+      if (data.sync) this.createTables();
     });
+    data.entities.forEach((e) => this.addEntity(e));
   }
 
   public async connect() {
@@ -84,7 +76,7 @@ export default class Database {
     }
   }
 
-  public getRepository<T extends Entity>(entity: T) {
+  public getRepository<T extends typeof Entity>(entity: T) {
     const findEntity = this.entities.find((e) => {
       const [currentMTD, entityMTD] = [
         getEntityMetadata(e.entity),
@@ -97,6 +89,28 @@ export default class Database {
   }
 
   private async createTables() {
-    this.entities.forEach((e) => {});
+    await Promise.all([
+      this.entities.map(async (e) => {
+        await createTable(Database.client, e);
+      }),
+    ]);
+  }
+
+  private addEntity(e: typeof Entity) {
+    let haveId: boolean = false;
+    const instance = new e();
+    const tableName = getEntityMetadata(e).name;
+    const metadatas = getFieldMetadatas(instance).map((metadata) => {
+      const isPrimaryKey = isPrimaryKeyField(instance, metadata.propertyKey);
+      if (isPrimaryKey) haveId = true;
+      return { ...metadata.metadata, pk: isPrimaryKey };
+    });
+    if (!haveId) throw new EntityValidation("Entity must have a primary key");
+    this.entities.push({
+      id: randomUUID(),
+      tableName: tableName,
+      entity: e,
+      fields: metadatas,
+    });
   }
 }
