@@ -32,7 +32,7 @@ const database = new Database({
     port: 5432,
     user: "postgres",
   },
-  sync: false,
+  sync: true,
 });
 
 (async () => {

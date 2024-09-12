@@ -14,10 +14,8 @@ export class Repository implements IOrm<Entity> {
     skip?: number;
   }): Promise<Entity[]> {
     const tableName = getEntityMetadata(this.entity).name;
-    console.log(tableName)
     const queryBase = `SELECT * FROM ${tableName}`;
     const data = await this.pg.query(queryBase);
-    console.log(data)
     return [];
   }
 

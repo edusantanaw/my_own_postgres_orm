@@ -10,40 +10,12 @@ import { EntityNotFound } from "../exceptions/EntityNotFound";
 import { EntityValidation } from "../exceptions/EntityValidation";
 import { Repository } from "../repository";
 import { createTable } from "./createTable";
+import { EntityItem, ICredentials } from "./types";
 
-type ICredentials = {
-  host: string;
-  user: string;
-  password: string;
-  port: number;
-  database: string;
-};
-
-type IData = {
+ type IData = {
   entities: (typeof Entity)[];
   credentials: ICredentials;
   sync?: boolean;
-};
-
-export type IFieldTypes =
-  | "Date"
-  | "String"
-  | "Boolean"
-  | "Int"
-  | "Float"
-  | "Double";
-
-export type IField = {
-  name: string;
-  fieldType: IFieldTypes;
-  pk: boolean;
-};
-
-export type EntityItem = {
-  id: string;
-  entity: typeof Entity;
-  tableName: string;
-  fields: IField[];
 };
 
 export default class Database {
