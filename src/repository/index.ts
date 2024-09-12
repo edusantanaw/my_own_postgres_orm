@@ -3,19 +3,20 @@ import { IOrm, IWhere } from "../@types/orm";
 import { QueryException } from "./exceptions/QueryException";
 import { Entity } from "../entity";
 import "reflect-metadata";
+import { getEntityMetadata } from "../decorator/Entities";
 
 export class Repository implements IOrm<Entity> {
-  constructor(private readonly entity: Entity, private readonly pg: Client) {
-  }
+  constructor(private readonly entity: Entity, private readonly pg: Client) {}
   async findAll(args?: {
     where: IWhere<Entity>;
     limit?: number;
     skip?: number;
   }): Promise<Entity[]> {
-    const tableName = Reflect.get(this.entity, "db_name");
+    console.log(this.entity)
+    const tableName = getEntityMetadata(this.entity);
+    console.log(tableName)
     const queryBase = `SELECT * FROM ${tableName}`;
     const data = await this.pg.query(queryBase);
-    console.log(data)
     return [];
   }
 

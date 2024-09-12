@@ -8,12 +8,19 @@ type data = {
 
 export function Entity({ name }: data) {
   return function (target: Function) {
-    Reflect.defineProperty(target, "db_name", {
-      value: name,
-      writable: false,
-      configurable: false,
-      enumerable: true,
-    });
+    Reflect.defineMetadata(ENTITY_METADATA_KEY, name, target);
+  };
+}
+
+export function isEntity() {
+  return function (target: Function) {
+    Reflect.get(target, "db_name");
     Reflect.defineMetadata(ENTITY_METADATA_KEY, true, target);
   };
+}
+
+
+export function getEntityMetadata(target: any) {
+  const metadata = Reflect.getMetadata(ENTITY_METADATA_KEY, target);
+  return metadata
 }

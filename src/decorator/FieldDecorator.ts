@@ -1,14 +1,38 @@
 import "reflect-metadata";
+import { Entity } from "../entity";
+import { assert } from "console";
 
-const ENTITY_METADATA_KEY = Symbol("field");
+const FIELD_METADATA_KEY = Symbol("field");
 
-type data = {
-  name: string;
-};
-
-export function Field({ name }: data) {
-  console.log(name);
-  return function (target: Function) {
-    Reflect.defineMetadata(ENTITY_METADATA_KEY, true, target);
+export function Field(metadata: string) {
+  return function (target: any, propertyKey: string) {
+    const fieldType = Reflect.getMetadata("design:type", target, propertyKey);
+    Reflect.defineMetadata(
+      FIELD_METADATA_KEY,
+      {
+        name: metadata,
+        fieldType: fieldType.name,
+      },
+      target,
+      propertyKey
+    );
   };
+}
+
+export function getFieldMetadatas(target: Entity) {
+  const metadatas = [];
+  for (const propertyKey of Object.getOwnPropertyNames(target)) {
+    const metadata = Reflect.getMetadata(
+      FIELD_METADATA_KEY,
+      target,
+      propertyKey
+    );
+    if (metadata) metadatas.push({ propertyKey, metadata });
+  }
+  return metadatas;
+}
+
+export function getFieldMetadataValue(target: Entity, metadata: string) {
+  const value = Reflect.getMetadata(metadata, target);
+  return value;
 }
