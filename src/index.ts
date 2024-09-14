@@ -3,10 +3,13 @@ import Database from "./database";
 
 import { Entity as EntityDecorator } from "./decorator/Entities";
 import { Field, PrimaryKeyField } from "./decorator/FieldDecorator";
-import { randomUUID } from "node:crypto";
+import { Entity } from "./entity";
+import { randomUUID } from "crypto";
+import { equal } from "assert";
+import { Repository } from "./repository";
 
 @EntityDecorator({ name: "entitie" })
-class MyEntity {
+class MyEntity extends Entity {
   @PrimaryKeyField()
   @Field("id")
   id!: string;
@@ -38,22 +41,19 @@ const database = new Database({
   await database
     .connect()
     .then(async () => {
-      const respository = database.getRepository(MyEntity);
-      const users = await respository.query(`Select * from employees`);
+      const respository = database.getRepository<MyEntity>(MyEntity);
+      // const users = await respository.query(`Select * from employees`);
       const entity = new MyEntity();
-      // entity.id = randomUUID();
-      // entity.name = "Eduardo";
-      // entity.email = "eduardo@email.com";
-      // entity.year = 2000;
-      // entity.deleted = false;
-      // respository.create(entity);
+      entity.id = randomUUID();
+      entity.name = "name";
+      entity.email = "eduardo@email.com";
+      entity.year = 2000;
+      entity.deleted = false;
+      await respository.create(entity);
       const users2 = await respository.findAll({
         where: {
           name: {
-            have: "name",
-          },
-          deleted: {
-            equals: false,
+            equals: "am",
           },
         },
       });

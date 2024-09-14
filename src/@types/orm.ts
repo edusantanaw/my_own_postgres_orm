@@ -1,4 +1,9 @@
-import { Type } from "typescript";
+export type IWhereOptions<T> = {
+  have?: T;
+  gt?: number;
+  lt?: number;
+  equals?: T;
+};
 
 export type IWhere<T> = {
   [Property in keyof T]?: {

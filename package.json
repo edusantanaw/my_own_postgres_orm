@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node-dev --watch  --transpile-only --clear ./src/index.ts"
+    "start": "ts-node-dev --watch  --transpile-only --clear ./src/index.ts",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",

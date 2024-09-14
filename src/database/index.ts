@@ -48,7 +48,7 @@ export default class Database {
     }
   }
 
-  public getRepository<T extends typeof Entity>(entity: T) {
+  public getRepository<T extends Entity>(entity: Function) {
     const findEntity = this.entities.find((e) => {
       const [currentMTD, entityMTD] = [
         getEntityMetadata(e.entity),
@@ -57,7 +57,7 @@ export default class Database {
       return currentMTD === entityMTD;
     });
     if (!findEntity) throw new EntityNotFound();
-    return new Repository(findEntity, Database.client);
+    return new Repository<T>(findEntity, Database.client);
   }
 
   private async createTables() {
