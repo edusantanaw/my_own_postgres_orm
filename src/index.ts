@@ -1,15 +1,12 @@
 import "reflect-metadata";
 import Database from "./database";
 
+import { randomUUID } from "crypto";
 import { Entity as EntityDecorator } from "./decorator/Entities";
 import { Field, PrimaryKeyField } from "./decorator/FieldDecorator";
-import { Entity } from "./entity";
-import { randomUUID } from "crypto";
-import { equal } from "assert";
-import { Repository } from "./repository";
 
 @EntityDecorator({ name: "entitie" })
-class MyEntity extends Entity {
+class MyEntity {
   @PrimaryKeyField()
   @Field("id")
   id!: string;
@@ -45,19 +42,33 @@ const database = new Database({
       // const users = await respository.query(`Select * from employees`);
       const entity = new MyEntity();
       entity.id = randomUUID();
-      entity.name = "name";
+      entity.name = "Update";
       entity.email = "eduardo@email.com";
       entity.year = 2000;
       entity.deleted = false;
       await respository.create(entity);
-      const users2 = await respository.findAll({
+      const myEntity = await respository.findAll({
         where: {
-          name: {
-            equals: "am",
+          id: {
+            equals: entity.id,
           },
         },
       });
-      console.log(users2);
+      console.log(myEntity);
+      entity.name = "Updated";
+      await respository.update(entity, {
+        id: {
+          equals: entity.id,
+        },
+      });
+      const myEntity2 = await respository.findAll({
+        where: {
+          id: {
+            equals: entity.id,
+          },
+        },
+      });
+      console.log(myEntity2);
     })
     .catch((err) => {
       console.log(err);

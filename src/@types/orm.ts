@@ -24,7 +24,7 @@ export interface IOrm<T> {
   query(sql: string): Promise<unknown>;
   findAll(args?: IFindAllArgs<T>): Promise<T[]>;
   create(data: T): Promise<T>;
-  update(data: T): Promise<T>;
-  delete(): Promise<void>;
+  update(data: T, where?: IWhere<T>): Promise<T>;
+  delete(where?: IWhere<T>): Promise<void>;
   findOne(): Promise<T>;
 }

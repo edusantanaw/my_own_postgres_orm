@@ -4,8 +4,14 @@ import { Entity } from "../entity";
 import { QueryException } from "./exceptions/QueryException";
 
 import "reflect-metadata";
-import { EntityItem } from "../database/types";
+import { EntityItem, IFieldTypes } from "../database/types";
 import { dateToIsoString } from "../utils/dateToIso";
+
+type ITableFields<T> = {
+  field: string;
+  value: string extends keyof T ? T[keyof T & string] : any;
+  type: IFieldTypes;
+};
 
 export class Repository<T extends Entity> implements IOrm<T> {
   constructor(
@@ -17,7 +23,6 @@ export class Repository<T extends Entity> implements IOrm<T> {
     limit?: number;
     skip?: number;
   }): Promise<T[]> {
-    console.log(args);
     let queryBase = `SELECT * FROM ${this.entity.tableName}`;
     if (args?.where) queryBase += "\n" + this.whereBuilder(args?.where);
     console.log(queryBase);
@@ -26,30 +31,27 @@ export class Repository<T extends Entity> implements IOrm<T> {
   }
 
   async create(data: T): Promise<any> {
-    const tablesFields = this.entity.fields.map((e) => {
-      const fieldValue = Reflect.get(data, e.name);
-      return {
-        field: e.name,
-        value: fieldValue,
-        type: e.fieldType,
-      };
-    });
+    const tablesFields = this.getTableField(data);
     const query = `INSERT INTO ${this.entity.tableName}(${tablesFields
       .map((e) => e.field)
       .join(",")}) VALUES (${tablesFields
-      .map((e) => {
-        if (typeof e.value === "string") return `'${e.value}'`;
-        if (e.type === "Date")
-          return `'${dateToIsoString((e.value as Date) ?? new Date())}'`;
-        return e.value;
-      })
+      .map((e) => this.formatType(e))
       .join(",")});`;
     const response = await this.pg.query(query);
     return response?.rowCount! > 0;
   }
 
-  update(data: T): Promise<T> {
-    throw new Error("Method not implemented.");
+  async update(data: T, where?: IWhere<T>): Promise<T> {
+    const tablesFields = this.getTableField(data);
+    let query = `UPDATE ${this.entity.tableName} SET ${tablesFields
+      .map((e) => `${e.field}=${this.formatType(e)}`)
+      .join(",")}`;
+    if (where) {
+      const whereQuery = this.whereBuilder(where);
+      query += "\n" + whereQuery;
+    }
+    await this.pg.query(query);
+    return data;
   }
 
   delete(): Promise<void> {
@@ -82,9 +84,7 @@ export class Repository<T extends Entity> implements IOrm<T> {
       if (itemValue?.gt) init += this.gtOrLt("gt", item, itemValue.gt);
       if (itemValue?.lt) init += this.gtOrLt("lt", item, itemValue.lt);
       if (itemValue?.have) init += this.have(item, itemValue.have);
-      console.log(init);
       if (init === "(") continue;
-      console.log(1);
       init += ")";
       base += init;
     }
@@ -102,8 +102,29 @@ export class Repository<T extends Entity> implements IOrm<T> {
     return `${field} = ${value}`;
   }
 
-  private gtOrLt(type: "gt" | "lt", field: string, value: number) {
+  private gtOrLt(type: "gt" | "lt", field: string, value: number | Date) {
     let sign = type === "gt" ? ">" : "<";
-    return `${field} ${sign} ${value}`;
+    return `${field} ${sign} ${
+      typeof value === "number" ? value : `'${dateToIsoString(value)}'`
+    }`;
+  }
+
+  private getTableField(data: T) {
+    const tablesFields = this.entity.fields.map((e) => {
+      const fieldValue = Reflect.get(data, e.name);
+      return {
+        field: e.name,
+        value: fieldValue,
+        type: e.fieldType,
+      };
+    });
+    return tablesFields;
+  }
+
+  private formatType(e: ITableFields<T>) {
+    if (typeof e.value === "string") return `'${e.value}'`;
+    if (e.type === "Date")
+      return `'${dateToIsoString((e.value as Date) ?? new Date())}'`;
+    return e.value;
   }
 }
