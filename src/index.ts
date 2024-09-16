@@ -68,7 +68,7 @@ const database = new Database({
           },
         },
       });
-      console.log(myEntity2);
+      await database.closeConnection();
     })
     .catch((err) => {
       console.log(err);

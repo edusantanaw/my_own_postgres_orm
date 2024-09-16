@@ -25,7 +25,6 @@ export class Repository<T extends Entity> implements IOrm<T> {
   }): Promise<T[]> {
     let queryBase = `SELECT * FROM ${this.entity.tableName}`;
     if (args?.where) queryBase += "\n" + this.whereBuilder(args?.where);
-    console.log(queryBase);
     const data = await this.pg.query(queryBase);
     return data.rows as T[];
   }

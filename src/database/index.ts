@@ -32,7 +32,7 @@ export default class Database {
 
   public async connect() {
     try {
-      if (Database.client) return Database;
+      if (Database.client) return Database.client;
       const client = new pg.Client({
         database: this.credentials.database,
         user: this.credentials.user,
@@ -58,6 +58,10 @@ export default class Database {
     });
     if (!findEntity) throw new EntityNotFound();
     return new Repository<T>(findEntity, Database.client);
+  }
+
+  public async closeConnection() {
+    await Database.client.end().then(()=> console.log(`DB closed!`))
   }
 
   private async createTables() {
