@@ -35,11 +35,20 @@ export class Repository<T extends Entity> implements IOrm<T> {
 
   async create(data: T): Promise<T> {
     const tablesFields = this.getTableField(data);
-    const query = `INSERT INTO ${this.entity.tableName}(${tablesFields
-      .map((e) => e.field)
-      .join(",")}) VALUES (${tablesFields
-      .map((e) => this.formatType(e))
-      .join(",")});`;
+    let fieldsStr = "";
+    let valuesStr = "";
+    for (let i = 0; i < tablesFields.length; i++) {
+      const field = tablesFields[i];
+      const formatedValue = this.formatType(field)
+      if (i === 0) {
+        fieldsStr += `${field.field}`;
+        valuesStr += formatedValue;
+        continue;
+      }
+      fieldsStr += `, ${field.field}`;
+      valuesStr += `, ${formatedValue}`;
+    }
+    const query = `INSERT INTO ${this.entity.tableName} (${fieldsStr}) VALUES (${valuesStr});`;
     await this.pg.query(query);
     return data;
   }
