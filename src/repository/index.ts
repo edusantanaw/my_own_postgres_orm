@@ -60,8 +60,13 @@ export class Repository<T extends Entity> implements IOrm<T> {
     await this.pg.query(query);
   }
 
-  findOne(): Promise<T> {
-    throw new Error("Method not implemented.");
+  async findOne(where?: IWhere<T>): Promise<T | null> {
+    let query = `SELECT * FROM ${this.entity.tableName}`;
+    if (where) query += ` ${this.whereBuilder(where)}`;
+    query += ' LIMIT 1'
+    const result = await this.pg.query(query);
+    if(result.rowCount === 0) return null
+    return result.rows[0];
   }
 
   async query(sql: string): Promise<unknown> {

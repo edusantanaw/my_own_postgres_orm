@@ -54,16 +54,12 @@ const database = new Database({
           },
         },
       });
-      console.log(myEntity);
-      await respository.delete({ id: { equals: entity.id } });
-      myEntity = await respository.findAll({
-        where: {
+      const myEntity2 = await respository.findOne({
           id: {
             equals: entity.id
           }
-        }
       })
-      console.log(myEntity, "deleted")
+      console.log(myEntity2)
     })
     .catch((err) => {
       console.log(err);

@@ -26,5 +26,5 @@ export interface IOrm<T> {
   create(data: T): Promise<T>;
   update(data: T, where?: IWhere<T>): Promise<T>;
   delete(where?: IWhere<T>): Promise<void>;
-  findOne(): Promise<T>;
+  findOne(): Promise<T | null>;
 }
