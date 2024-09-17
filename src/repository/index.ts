@@ -1,5 +1,5 @@
 import { Client } from "pg";
-import { IOrm, IWhere, IWhereOptions } from "../@types/orm";
+import { IOrm, IWhere } from "../@types/orm";
 import { Entity } from "../entity";
 import { QueryException } from "./exceptions/QueryException";
 
@@ -15,13 +15,13 @@ type ITableFields<T> = {
 };
 
 export class Repository<T extends Entity> implements IOrm<T> {
-  private whereBuilder: WhereBuilder<T>;
+  private whereBuilder: WhereBuilder<T> = new WhereBuilder();
+
   constructor(
     private readonly entity: EntityItem,
     private readonly pg: Client
-  ) {
-    this.whereBuilder = new WhereBuilder();
-  }
+  ) {}
+
   async findAll(args?: {
     where: IWhere<T>;
     limit?: number;
@@ -33,15 +33,15 @@ export class Repository<T extends Entity> implements IOrm<T> {
     return data.rows as T[];
   }
 
-  async create(data: T): Promise<any> {
+  async create(data: T): Promise<T> {
     const tablesFields = this.getTableField(data);
     const query = `INSERT INTO ${this.entity.tableName}(${tablesFields
       .map((e) => e.field)
       .join(",")}) VALUES (${tablesFields
       .map((e) => this.formatType(e))
       .join(",")});`;
-    const response = await this.pg.query(query);
-    return response?.rowCount! > 0;
+    await this.pg.query(query);
+    return data;
   }
 
   async update(data: T, where?: IWhere<T>): Promise<T> {

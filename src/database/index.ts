@@ -44,6 +44,7 @@ export default class Database {
       await client.connect();
       Database.client = client;
     } catch (error) {
+      console.log(error)
       process.exit(1);
     }
   }

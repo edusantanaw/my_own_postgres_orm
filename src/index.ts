@@ -23,9 +23,18 @@ class MyEntity {
   year!: number;
 }
 
+@EntityDecorator({ name: "test" })
+class MySecundaryEntity {
+  @PrimaryKeyField()
+  @Field("id")
+  id!: string;
+  @Field("name")
+  name!: string;
+}
+
 // create a new database
 const database = new Database({
-  entities: [MyEntity], // register entities
+  entities: [MyEntity, MySecundaryEntity], // register entities
   credentials: {
     database: "my_database",
     host: "localhost",

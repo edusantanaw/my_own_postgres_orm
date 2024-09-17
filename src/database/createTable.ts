@@ -1,5 +1,6 @@
 import { Client } from "pg";
 import { EntityItem, IField } from "./types";
+import fs, { PathOrFileDescriptor } from "node:fs";
 
 type Fields = {
   [value: string]: string;
@@ -14,11 +15,12 @@ const fields: Fields = {
 
 export async function createTable(pgInstance: Client, entity: EntityItem) {
   try {
-    const tableExist = await tableAlreadyExists(pgInstance, entity.tableName);
-    if (tableExist) return;
     let query = `CREATE TABLE ${entity.tableName} ($[fields])`;
     const fieldsBuilder = getFieldsStr(entity.fields);
     query = query.replace("$[fields]", fieldsBuilder);
+    await createMigration(`${query};\n\n`, entity.tableName);
+    const tableExist = await tableAlreadyExists(pgInstance, entity.tableName);
+    if (tableExist) return;
     pgInstance.query(query);
   } catch (error) {
     console.log(error);
@@ -44,3 +46,22 @@ function getFieldsStr(fieldsArr: IField[]) {
   }
   return fieldsBuilder;
 }
+
+async function createMigration(sql: string, entityName: string) {
+  const regex = /CREATE\s+TABLE\s+(\w+)/gi;
+  let dirPath: PathOrFileDescriptor = "migration";
+  await new Promise((resolve) => {
+    const exists = fs.existsSync(dirPath);
+    if (!exists) fs.mkdirSync(dirPath);
+    resolve(null);
+  });
+  await new Promise((resolve) => {
+    let path = `${dirPath}/migration.sql`;
+    const file = fs.readFileSync(path).toString();
+    const entities = [...file.matchAll(regex)].map((match) => match[1]);
+    if (entities.includes(entityName)) return;
+    fs.appendFileSync(`${dirPath}/migration.sql`, sql);
+    resolve(null);
+  });
+}
+
