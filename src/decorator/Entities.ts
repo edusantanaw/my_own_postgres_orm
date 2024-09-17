@@ -14,7 +14,6 @@ export function Entity({ name }: data) {
   };
 }
 
-
 export function getEntityMetadata(target: any) {
   const metadata = Reflect.getMetadata(ENTITY_METADATA_KEY, target);
   return metadata

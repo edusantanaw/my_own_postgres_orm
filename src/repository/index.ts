@@ -6,6 +6,7 @@ import { QueryException } from "./exceptions/QueryException";
 import "reflect-metadata";
 import { EntityItem, IFieldTypes } from "../database/types";
 import { dateToIsoString } from "../utils/dateToIso";
+import { WhereBuilder } from "./builders/where";
 
 type ITableFields<T> = {
   field: string;
@@ -14,17 +15,20 @@ type ITableFields<T> = {
 };
 
 export class Repository<T extends Entity> implements IOrm<T> {
+  private whereBuilder: WhereBuilder<T>;
   constructor(
     private readonly entity: EntityItem,
     private readonly pg: Client
-  ) {}
+  ) {
+    this.whereBuilder = new WhereBuilder();
+  }
   async findAll(args?: {
     where: IWhere<T>;
     limit?: number;
     skip?: number;
   }): Promise<T[]> {
     let queryBase = `SELECT * FROM ${this.entity.tableName}`;
-    if (args?.where) queryBase += "\n" + this.whereBuilder(args?.where);
+    if (args?.where) queryBase += "\n" + this.whereBuilder.builder(args?.where);
     const data = await this.pg.query(queryBase);
     return data.rows as T[];
   }
@@ -46,7 +50,7 @@ export class Repository<T extends Entity> implements IOrm<T> {
       .map((e) => `${e.field}=${this.formatType(e)}`)
       .join(",")}`;
     if (where) {
-      const whereQuery = this.whereBuilder(where);
+      const whereQuery = this.whereBuilder.builder(where);
       query += "\n" + whereQuery;
     }
     await this.pg.query(query);
@@ -54,18 +58,18 @@ export class Repository<T extends Entity> implements IOrm<T> {
   }
 
   async delete(args: IWhere<T>): Promise<void> {
-    let query = `DELETE FROM ${this.entity.tableName} ${this.whereBuilder(
-      args
-    )}`;
+    let query = `DELETE FROM ${
+      this.entity.tableName
+    } ${this.whereBuilder.builder(args)}`;
     await this.pg.query(query);
   }
 
   async findOne(where?: IWhere<T>): Promise<T | null> {
     let query = `SELECT * FROM ${this.entity.tableName}`;
-    if (where) query += ` ${this.whereBuilder(where)}`;
-    query += ' LIMIT 1'
+    if (where) query += ` ${this.whereBuilder.builder(where)}`;
+    query += " LIMIT 1";
     const result = await this.pg.query(query);
-    if(result.rowCount === 0) return null
+    if (result.rowCount === 0) return null;
     return result.rows[0];
   }
 
@@ -77,43 +81,6 @@ export class Repository<T extends Entity> implements IOrm<T> {
       const message = error as string;
       throw new QueryException(message);
     }
-  }
-
-  private whereBuilder(data: IWhere<T>) {
-    let base = `WHERE `;
-    let initialLen = base.length;
-    for (const item in data) {
-      const itemValue = data[item] as IWhereOptions<any>;
-      if (base[base.length - 1] === ")") base += " AND ";
-      let init = "(";
-      if (itemValue?.equals !== undefined)
-        init += this.equals(item, itemValue.equals);
-      if (itemValue?.gt) init += this.gtOrLt("gt", item, itemValue.gt);
-      if (itemValue?.lt) init += this.gtOrLt("lt", item, itemValue.lt);
-      if (itemValue?.have) init += this.have(item, itemValue.have);
-      if (init === "(") continue;
-      init += ")";
-      base += init;
-    }
-    if (base.length === initialLen) return "";
-    return base;
-  }
-
-  private have(field: string, value: string) {
-    return `${field} LIKE '%${value}%'`;
-  }
-
-  private equals<T>(field: string, value: T) {
-    if (typeof value === "string") return `${field} = '${value}'`;
-    if (value instanceof Date) return `${field} = '${dateToIsoString(value)}'`;
-    return `${field} = ${value}`;
-  }
-
-  private gtOrLt(type: "gt" | "lt", field: string, value: number | Date) {
-    let sign = type === "gt" ? ">" : "<";
-    return `${field} ${sign} ${
-      typeof value === "number" ? value : `'${dateToIsoString(value)}'`
-    }`;
   }
 
   private getTableField(data: T) {

@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { Entity as EntityDecorator } from "./decorator/Entities";
 import { Field, PrimaryKeyField } from "./decorator/FieldDecorator";
 
+// create entity
 @EntityDecorator({ name: "entitie" })
 class MyEntity {
   @PrimaryKeyField()
@@ -22,8 +23,9 @@ class MyEntity {
   year!: number;
 }
 
+// create a new database
 const database = new Database({
-  entities: [MyEntity],
+  entities: [MyEntity], // register entities
   credentials: {
     database: "my_database",
     host: "localhost",
@@ -31,35 +33,24 @@ const database = new Database({
     port: 5432,
     user: "postgres",
   },
-  sync: true,
+  sync: true, // create all tables if aren't created yet
 });
 
 (async () => {
+  // initialize connection with database
   await database
     .connect()
     .then(async () => {
+      // get a repository with all avaliables methods
       const respository = database.getRepository<MyEntity>(MyEntity);
-      // const users = await respository.query(`Select * from employees`);
-      const entity = new MyEntity();
-      entity.id = randomUUID();
-      entity.name = "Update";
-      entity.email = "eduardo@email.com";
-      entity.year = 2000;
-      entity.deleted = false;
-      await respository.create(entity);
-      let myEntity = await respository.findAll({
-        where: {
-          id: {
-            equals: entity.id,
-          },
-        },
+      await respository.create({
+        id: randomUUID(),
+        name: "Eduardo",
+        email: "eduardo@email.com",
+        year: 2002,
+        deleted: false,
+        createdAt: new Date(),
       });
-      const myEntity2 = await respository.findOne({
-          id: {
-            equals: entity.id
-          }
-      })
-      console.log(myEntity2)
     })
     .catch((err) => {
       console.log(err);
