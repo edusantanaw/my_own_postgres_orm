@@ -47,7 +47,7 @@ const database = new Database({
       entity.year = 2000;
       entity.deleted = false;
       await respository.create(entity);
-      const myEntity = await respository.findAll({
+      let myEntity = await respository.findAll({
         where: {
           id: {
             equals: entity.id,
@@ -55,20 +55,15 @@ const database = new Database({
         },
       });
       console.log(myEntity);
-      entity.name = "Updated";
-      await respository.update(entity, {
-        id: {
-          equals: entity.id,
-        },
-      });
-      const myEntity2 = await respository.findAll({
+      await respository.delete({ id: { equals: entity.id } });
+      myEntity = await respository.findAll({
         where: {
           id: {
-            equals: entity.id,
-          },
-        },
-      });
-      await database.closeConnection();
+            equals: entity.id
+          }
+        }
+      })
+      console.log(myEntity, "deleted")
     })
     .catch((err) => {
       console.log(err);

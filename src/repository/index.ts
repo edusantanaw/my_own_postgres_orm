@@ -53,8 +53,11 @@ export class Repository<T extends Entity> implements IOrm<T> {
     return data;
   }
 
-  delete(): Promise<void> {
-    throw new Error("Method not implemented.");
+  async delete(args: IWhere<T>): Promise<void> {
+    let query = `DELETE FROM ${this.entity.tableName} ${this.whereBuilder(
+      args
+    )}`;
+    await this.pg.query(query);
   }
 
   findOne(): Promise<T> {

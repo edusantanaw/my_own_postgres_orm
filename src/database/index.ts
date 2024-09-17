@@ -12,7 +12,7 @@ import { Repository } from "../repository";
 import { createTable } from "./createTable";
 import { EntityItem, ICredentials } from "./types";
 
- type IData = {
+type IData = {
   entities: (typeof Entity)[];
   credentials: ICredentials;
   sync?: boolean;
@@ -61,7 +61,7 @@ export default class Database {
   }
 
   public async closeConnection() {
-    await Database.client.end().then(()=> console.log(`DB closed!`))
+    await Database.client.end().then(() => console.log(`DB closed!`));
   }
 
   private async createTables() {
