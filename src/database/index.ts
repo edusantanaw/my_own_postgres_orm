@@ -24,10 +24,10 @@ export default class Database {
   private credentials: ICredentials;
   constructor(data: IData) {
     this.credentials = data.credentials;
-    this.connect().then(() => {
-      if (data.sync) this.createTables();
-    });
     data.entities.forEach((e) => this.addEntity(e));
+    this.connect().then(async () => {
+      if (data.sync) await createTable(Database.client, this.entities);
+    });
   }
 
   public async connect() {
@@ -44,7 +44,7 @@ export default class Database {
       await client.connect();
       Database.client = client;
     } catch (error) {
-      console.log(error)
+      console.log(error);
       process.exit(1);
     }
   }
@@ -63,14 +63,6 @@ export default class Database {
 
   public async closeConnection() {
     await Database.client.end().then(() => console.log(`DB closed!`));
-  }
-
-  private async createTables() {
-    await Promise.all([
-      this.entities.map(async (e) => {
-        await createTable(Database.client, e);
-      }),
-    ]);
   }
 
   private addEntity(e: typeof Entity) {

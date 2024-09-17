@@ -13,18 +13,22 @@ const fields: Fields = {
   Number: "real",
 };
 
-export async function createTable(pgInstance: Client, entity: EntityItem) {
-  try {
-    let query = `CREATE TABLE ${entity.tableName} ($[fields])`;
-    const fieldsBuilder = getFieldsStr(entity.fields);
-    query = query.replace("$[fields]", fieldsBuilder);
-    await createMigration(`${query};\n\n`, entity.tableName);
-    const tableExist = await tableAlreadyExists(pgInstance, entity.tableName);
-    if (tableExist) return;
-    pgInstance.query(query);
-  } catch (error) {
-    console.log(error);
+export async function createTable(pgInstance: Client, entitys: EntityItem[]) {
+  const queries: string[] = [];
+  for (const entity of entitys) {
+    try {
+      let query = `CREATE TABLE ${entity.tableName} ($[fields])`;
+      const fieldsBuilder = getFieldsStr(entity.fields);
+      query = query.replace("$[fields]", fieldsBuilder);
+      queries.push(`${query};`);
+      const tableExist = await tableAlreadyExists(pgInstance, entity.tableName);
+      if (tableExist) continue;
+      pgInstance.query(query);
+    } catch (error) {
+      console.log(error);
+    }
   }
+  await createMigration(queries, entitys);
 }
 
 async function tableAlreadyExists(pgInstance: Client, tableName: string) {
@@ -40,28 +44,42 @@ function getFieldsStr(fieldsArr: IField[]) {
   const fieldsCount = fieldsArr.length - 1;
   for (let i = 0; i <= fieldsCount; i++) {
     let type = fields[fieldsArr[i].fieldType];
-    fieldsBuilder += `${fieldsArr[i].name} ${type} ${
-      fieldsArr[i].pk ? "PRIMARY KEY" : ""
-    } ${i === fieldsCount ? "" : ","}`;
+    fieldsBuilder += `${fieldsArr[i].name} ${type}${
+      fieldsArr[i].pk ? " PRIMARY KEY" : ""
+    }${i === fieldsCount ? "" : ", "}`;
   }
   return fieldsBuilder;
 }
 
-async function createMigration(sql: string, entityName: string) {
-  const regex = /CREATE\s+TABLE\s+(\w+)/gi;
+async function createMigration(queries: string[], entities: EntityItem[]) {
   let dirPath: PathOrFileDescriptor = "migration";
-  await new Promise((resolve) => {
-    const exists = fs.existsSync(dirPath);
-    if (!exists) fs.mkdirSync(dirPath);
-    resolve(null);
-  });
-  await new Promise((resolve) => {
-    let path = `${dirPath}/migration.sql`;
-    const file = fs.readFileSync(path).toString();
-    const entities = [...file.matchAll(regex)].map((match) => match[1]);
-    if (entities.includes(entityName)) return;
-    fs.appendFileSync(`${dirPath}/migration.sql`, sql);
-    resolve(null);
+  await createDir(dirPath);
+  let path = `${dirPath}/migration.sql`;
+  const file = await getCurrentMigration(path);
+  if (!file) await createFile(queries, path);
+}
+
+async function createFile(queries: string[], path: string) {
+  return new Promise((resolve) => {
+    let sql = queries.join("\n\n");
+    fs.writeFile(path, sql, () => resolve(null));
   });
 }
 
+async function getCurrentMigration(path: string) {
+  const exists = fs.existsSync(path);
+  if (exists)
+    return new Promise((resolve) => {
+      const file = fs.readFileSync(path);
+      resolve(file.toString());
+    }) as Promise<string>;
+  return null;
+}
+
+async function createDir(dir: string) {
+  await new Promise((resolve) => {
+    const exists = fs.existsSync(dir);
+    if (!exists) fs.mkdirSync(dir);
+    resolve(null);
+  });
+}
